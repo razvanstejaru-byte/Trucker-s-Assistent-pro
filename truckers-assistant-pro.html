@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Trucker's Assistant Pro</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/leaflet/1.9.4/leaflet.js"></script>
+<style>
+  :root{
+    --bg:#0f1115;
+    --card:#171a21;
+    --card2:#1e222b;
+    --border:#2a2f3a;
+    --amber:#f5a623;
+    --amber-dark:#c9821a;
+    --green:#3ecf8e;
+    --red:#e5484d;
+    --blue:#4f9dff;
+    --purple:#b385f5;
+    --text:#e8e9ec;
+    --muted:#8a8f99;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding-bottom:40px;
+  }
+  header{
+    padding:16px 16px 12px;
+    text-align:center;
+    border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,#171a21,#0f1115);
+  }
+  header h1{margin:0;font-size:1.2rem;letter-spacing:.3px;}
+  header .sub{color:var(--muted);font-size:.78rem;margin-top:2px;}
+  
+  .month-selector-bar {
+    background: var(--card);
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .month-selector-bar label {
+    margin: 0;
+    font-weight: 700;
+    color: var(--amber);
+    white-space: nowrap;
+    font-size: 0.85rem;
+  }
+  .month-selector-bar select {
+    flex: 1;
+    background: var(--card2);
+    color: var(--text);
+    border: 1px solid var(--amber);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    outline: none;
+  }
+
+  .header-dashboard{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:8px;
+    padding:10px 16px;
+    background:#12151b;
+    border-bottom:1px solid var(--border);
+    font-size:.8rem;
+  }
+  .hd-box{
+    background:var(--card2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:8px 10px;
+    text-align:center;
+  }
+  .hd-box .hd-val{font-size:1rem;font-weight:700;color:var(--amber);}
+  .hd-box .hd-lbl{font-size:.68rem;color:var(--muted);margin-top:1px;}
+  
+  .acts-bar{
+    grid-column: 1 / -1;
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    padding-bottom:2px;
+  }
+  .act-badge{
+    flex:0 0 auto;
+    font-size:.7rem;
+    font-weight:600;
+    padding:4px 8px;
+    border-radius:6px;
+    border:1px solid var(--border);
+    background:var(--card);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .act-green{border-color:var(--green);color:var(--green);background:rgba(62,207,142,.08);}
+  .act-yellow{border-color:var(--amber);color:var(--amber);background:rgba(245,166,35,.08);}
+  .act-red{border-color:var(--red);color:var(--red);background:rgba(229,72,77,.12);}
+
+  .wrap{max-width:520px;margin:0 auto;padding:16px;}
+  .tabs{
+    display:flex;
+    gap:6px;
+    margin-bottom:16px;
+    background:var(--card2);
+    padding:4px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    overflow-x:auto;
+  }
+  .tab{
+    flex:0 0 auto;
+    text-align:center;
+    padding:10px 12px;
+    border-radius:9px;
+    font-size:.8rem;
+    font-weight:600;
+    color:var(--muted);
+    cursor:pointer;
+    user-select:none;
+    white-space:nowrap;
+  }
+  .tab.active{background:var(--amber);color:#1a1200;}
+  .section{display:none;}
+  .section.active{display:block;}
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .card h2{margin:0 0 12px;font-size:1rem;color:var(--amber);}
+  .card h2.blue{color:var(--blue);}
+  .card h2.purple{color:var(--purple);}
+  .card h2.green{color:var(--green);}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .stat{background:var(--card2);border-radius:10px;padding:12px;text-align:center;}
+  .stat .val{font-size:1.3rem;font-weight:700;color:var(--amber);}
+  .stat .lbl{font-size:.7rem;color:var(--muted);margin-top:2px;}
+  label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:5px;margin-top:12px;}
+  label:first-child{margin-top:0;}
+  input[type=number], input[type=date], input[type=text], input[type=email], input[type=password], input[type=tel]{
+    width:100%;
+    padding:11px 12px;
+    background:var(--card2);
+    border:1px solid var(--border);
+    border-radius:9px;
+    color:var(--text);
+    font-size:1rem;
+  }
+  input:focus{outline:1px solid var(--amber);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .checkbox-row{display:flex;align-items:center;gap:8px;margin-top:14px;}
+  .checkbox-row input{width:18px;height:18px;}
+  .checkbox-row span{font-size:.85rem;color:var(--text);}
+  button{border:none;border-radius:10px;padding:13px;font-size:.95rem;font-weight:600;cursor:pointer;}
+  .btn-primary{width:100%;margin-top:16px;background:var(--amber);color:#1a1200;}
+  .btn-primary.blue{background:var(--blue);color:#051324;}
+  .btn-primary.purple{background:var(--purple);color:#210a3d;}
+  .btn-primary.green{background:var(--green);color:#052014;}
+  .btn-primary:active{filter:brightness(0.9);}
+  .btn-row{display:flex;gap:10px;margin-top:10px;}
+  .btn-secondary{flex:1;background:var(--card2);color:var(--text);border:1px solid var(--border);font-weight:500;font-size:.82rem;}
+  .entry{background:var(--card2);border-radius:10px;padding:12px;margin-bottom:8px;border-left:3px solid var(--border);}
+  .entry.full{border-left-color:var(--amber);}
+  .entry-top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .entry-top .date{font-weight:600;font-size:.9rem;}
+  .entry-top .del{color:var(--red);font-size:1.1rem;background:none;border:none;padding:0 4px;cursor:pointer;}
+  .entry-meta{font-size:.8rem;color:var(--muted);margin-top:4px;}
+  .entry-consum{margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);font-size:.85rem;display:flex;justify-content:space-between;}
+  .entry-consum .c-val{color:var(--green);font-weight:700;}
+  .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:.9rem;}
+  .badge{font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-block;}
+  .badge-balast{background:rgba(79,157,255,.15);color:var(--blue);}
+  .badge-agregate{background:rgba(62,207,142,.15);color:var(--green);}
+  .badge-concasat{background:rgba(245,166,35,.15);color:var(--amber);}
+  .badge-altele{background:rgba(179,133,245,.15);color:var(--purple);}
+  .sort-breakdown{display:flex;flex-direction:column;gap:8px;margin-bottom:4px;}
+  .sort-row{display:flex;justify-content:space-between;align-items:center;background:var(--card2);padding:9px 12px;border-radius:9px;font-size:.85rem;}
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.65);
+    display:flex;align-items:center;justify-content:center;
+    z-index:100;padding:20px;
+  }
+  .modal-box{
+    background:var(--card);border:1px solid var(--amber);border-radius:16px;
+    padding:22px;max-width:400px;width:100%;
+  }
+  .modal-box h3{margin:0 0 10px;color:var(--amber);font-size:1.1rem;}
+  .modal-box p{margin:0 0 14px;font-size:.87rem;color:var(--muted);line-height:1.45;}
+  .month-info{display:flex;justify-content:space-between;font-size:.82rem;color:var(--muted);margin-bottom:10px;}
+  .month-info b{color:var(--text);}
+  .tip-select{display:flex;gap:8px;margin-top:6px;}
+  .tip-opt{
+    flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;
+    padding:12px 8px;text-align:center;cursor:pointer;font-size:.8rem;color:var(--muted);
+  }
+  .tip-opt.selected{border-color:var(--green);background:rgba(62,207,142,.12);color:var(--text);}
+  .tip-opt .suma{display:block;font-size:1.05rem;font-weight:700;color:var(--green);margin-top:2px;}
+  .login-screen{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  }
+  .login-box{
+    background:var(--card);border:1px solid var(--border);border-radius:16px;
+    padding:26px 22px;max-width:380px;width:100%;
+  }
+  .login-box h1{margin:0 0 4px;font-size:1.3rem;text-align:center;}
+  .login-box .sub{color:var(--muted);font-size:.82rem;text-align:center;margin-bottom:20px;}
+  .login-error{
+    background:rgba(229,72,77,.12);border:1px solid var(--red);color:var(--red);
+    border-radius:9px;padding:9px 12px;font-size:.82rem;margin-top:10px;display:none;
+  }
+  .login-hint{color:var(--muted);font-size:.75rem;margin-top:10px;text-align:center;}
+  .app-hidden{display:none;}
+  .topbar-user{
+    display:flex;justify-content:space-between;align-items:center;
+    background:var(--card2);border:1px solid var(--border);border-radius:10px;
+    padding:9px 12px;margin-bottom:14px;font-size:.82rem;
+  }
+  .topbar-user .logout-btn{
+    background:none;border:none;color:var(--red);font-size:.78rem;font-weight:600;padding:2px 6px;
+  }
+  .sync-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px;}
+  .sync-dot.offline{background:var(--red);}
+
+  /* Onboarding Modal */
+  .onboarding-modal{
+    position:fixed;inset:0;background:rgba(0,0,0,.75);
+    display:flex;align-items:center;justify-content:center;
+    z-index:200;padding:20px;
+  }
+  .onboarding-box{
+    background:var(--card);border:2px solid var(--blue);border-radius:16px;
+    padding:26px;max-width:420px;width:100%;
+  }
+  .onboarding-box h2{margin:0 0 8px;font-size:1.2rem;color:var(--blue);text-align:center;}
+  .onboarding-box .intro{color:var(--muted);font-size:.9rem;text-align:center;margin-bottom:18px;line-height:1.5;}
+  .pay-options{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+  .pay-option{
+    background:var(--card2);border:2px solid var(--border);border-radius:10px;
+    padding:14px;cursor:pointer;transition:all .2s ease;
+  }
+  .pay-option:hover{border-color:var(--blue);background:rgba(79,157,255,.08);}
+  .pay-option.selected{border-color:var(--green);background:rgba(62,207,142,.12);}
+  .pay-option .title{font-weight:600;color:var(--text);font-size:.95rem;}
+  .pay-option .desc{font-size:.75rem;color:var(--muted);margin-top:4px;}
+  .rate-input-group{display:none;}
+  .rate-input-group.show{display:block;}
+  .rate-input-group label{margin-top:14px;margin-bottom:8px;}
+  .onboarding-buttons{display:flex;gap:10px;margin-top:20px;}
+  .onboarding-buttons button{flex:1;padding:12px;}
+</style>
+</head>
+<body>
+
+<!-- ===== ECRAN LOGIN ===== -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h1>🚛 Trucker's Assistant Pro</h1>
+    <div class="sub">Professional Truck Management</div>
+
+    <label>Email</label>
+    <input type="email" id="loginEmail" placeholder="ex: driver@example.com" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false">
+    <label>Parolă</label>
+    <input type="text" id="loginParola" placeholder="parola ta" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" style="-webkit-text-security:disc;text-security:disc;">
+
+    <button class="btn-primary" onclick="doLogin()">Intră în cont</button>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="doSignup()">Creează cont nou</button>
+    </div>
+
+    <div class="login-error" id="loginError"></div>
+    <div class="login-hint">Fiecare șofer are cont propriu (email + parolă).</div>
+  </div>
+</div>
+
+<!-- ===== ONBOARDING PROFIL ===== -->
+<div class="onboarding-modal" id="onboardingModal" style="display:none;">
+  <div class="onboarding-box" style="max-width:450px;">
+    <h2>⚙️ Configurează salariul</h2>
+    <p class="intro">Completează cum ești plătit și ce bonusuri primești.</p>
+
+    <div style="margin-bottom:18px;">
+      <label style="margin-top:0;font-weight:600;color:var(--text);">Tip de plată</label>
+      <div class="pay-options" id="payOptions">
+        <div class="pay-option" onclick="selectPayType('per_trip')">
+          <div class="title">📍 Pe cursă</div>
+          <div class="desc">X lei pentru fiecare cursă</div>
+        </div>
+        <div class="pay-option" onclick="selectPayType('per_day')">
+          <div class="title">📅 Pe zi</div>
+          <div class="desc">X lei pentru fiecare zi</div>
+        </div>
+        <div class="pay-option" onclick="selectPayType('per_km')">
+          <div class="title">📏 Pe kilometru</div>
+          <div class="desc">X lei pentru fiecare km</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rate-input-group" id="rateInputGroup" style="display:none;">
+      <label id="rateLabel" style="font-weight:600;color:var(--text);">Suma (lei):</label>
+      <input type="number" id="rateInput" placeholder="ex: 50" step="0.01" inputmode="decimal">
+      <small style="color:var(--muted);font-size:.75rem;margin-top:6px;display:block;font-style:italic;" id="rateHint"></small>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;">
+      <label style="font-weight:600;color:var(--text);margin-top:0;">Bonusuri și plăți speciale (opțional)</label>
+      
+      <div class="checkbox-row" style="margin-top:10px;">
+        <input type="checkbox" id="bonusSaturday" onchange="toggleBonusInput('saturday')">
+        <span>Sâmbeta plătită</span>
+      </div>
+      <div style="margin-left:26px;display:none;" id="saturdayInput">
+        <input type="number" id="saturdayRate" placeholder="ex: 100" step="0.01" inputmode="decimal" style="margin-top:6px;">
+        <small style="color:var(--muted);font-size:.75rem;margin-top:4px;display:block;">Lei per sâmbătă lucrata</small>
+      </div>
+
+      <div class="checkbox-row" style="margin-top:10px;">
+        <input type="checkbox" id="bonusMeal" onchange="toggleBonusInput('meal')">
+        <span>Bonuri de masă</span>
+      </div>
+      <div style="margin-left:26px;display:none;" id="mealInput">
+        <input type="number" id="mealRate" placeholder="ex: 40" step="0.01" inputmode="decimal" style="margin-top:6px;">
+        <small style="color:var(--muted);font-size:.75rem;margin-top:4px;display:block;">Lei per zi lucrata</small>
+      </div>
+
+      <div class="checkbox-row" style="margin-top:10px;">
+        <input type="checkbox" id="bonusService" onchange="toggleBonusInput('service')">
+        <span>Service (plățit)</span>
+      </div>
+      <div style="margin-left:26px;display:none;" id="serviceInput">
+        <input type="number" id="serviceRate" placeholder="ex: 50" step="0.01" inputmode="decimal" style="margin-top:6px;">
+        <small style="color:var(--muted);font-size:.75rem;margin-top:4px;display:block;">Lei per intervenție plătită</small>
+      </div>
+    </div>
+
+    <div class="onboarding-buttons" style="margin-top:20px;">
+      <button class="btn-secondary" onclick="skipOnboarding()">Mai târziu</button>
+      <button class="btn-primary blue" onclick="savePayProfile()" id="btnSaveProfile" disabled>Salvează</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APLICATIA ===== -->
+<div id="appRoot" class="app-hidden">
+
+<header>
+  <h1>🚛 Trucker's Assistant Pro</h1>
+  <div class="sub" id="headerSub">Professional Truck Management · v1.0</div>
+</header>
+
+<div class="month-selector-bar">
+  <label for="globalMonthSelect">📅 Vizualizează luna:</label>
+  <select id="globalMonthSelect" onchange="onSelectedMonthChange()"></select>
+</div>
+
+<div class="header-dashboard">
+  <div class="hd-box">
+    <div class="hd-val" id="topHeaderDays">–</div>
+    <div class="hd-lbl">Zile lucrate</div>
+  </div>
+  <div class="hd-box">
+    <div class="hd-val" id="topHeaderTrips" style="color:var(--green)">–</div>
+    <div class="hd-lbl">Nr. curse</div>
+  </div>
+  <div class="hd-box">
+    <div class="hd-val" id="topHeaderKm" style="color:#ff9800">–</div>
+    <div class="hd-lbl">Total km</div>
+  </div>
+  <div class="acts-bar" id="actsBar"></div>
+</div>
+
+<div class="wrap">
+
+  <div class="topbar-user">
+    <span><span class="sync-dot" id="syncDot"></span><span id="userLabel">–</span></span>
+    <div style="display:flex;gap:8px;">
+      <button class="logout-btn" style="color:var(--blue);" onclick="openReconfigureProfile()">⚙️</button>
+      <button class="logout-btn" onclick="doLogout()">Ieși</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="combustibil" onclick="switchTab('combustibil')">Combustibil</div>
+    <div class="tab" data-tab="curse" onclick="switchTab('curse')">Curse</div>
+    <div class="tab" data-tab="salariu" onclick="switchTab('salariu')">Salariu</div>
+    <div class="tab" data-tab="km" onclick="switchTab('km')">Km lunar</div>
+    <div class="tab" data-tab="historic" onclick="switchTab('historic')">Istoric</div>
+  </div>
+
+  <!-- ===== TAB COMBUSTIBIL ===== -->
+  <div class="section active" id="tab-combustibil">
+    <div class="card">
+      <h2>Statistici consum</h2>
+      <div class="stats">
+        <div class="stat"><div class="val" id="statAvg">–</div><div class="lbl">Mediu L/100km</div></div>
+        <div class="stat"><div class="val" id="statLast">–</div><div class="lbl">Ultimul consum</div></div>
+        <div class="stat"><div class="val" id="statKm">–</div><div class="lbl">Total km</div></div>
+        <div class="stat"><div class="val" id="statLitri">–</div><div class="lbl">Total litri</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Alimentare nouă</h2>
+      <label>Data</label>
+      <input type="date" id="inpData">
+      <div class="row2">
+        <div><label>Kilometraj (bord)</label><input type="number" id="inpKm" placeholder="ex: 254300" inputmode="numeric"></div>
+        <div><label>Litri alimentați</label><input type="number" id="inpLitri" placeholder="ex: 320" step="0.01" inputmode="decimal"></div>
+      </div>
+      <label>Preț / litru (opțional, lei)</label>
+      <input type="number" id="inpPret" placeholder="ex: 6.85" step="0.01" inputmode="decimal">
+      <div class="checkbox-row">
+        <input type="checkbox" id="inpFull" checked>
+        <span>Plin de tot (rezervor plin)</span>
+      </div>
+      <button class="btn-primary" onclick="addEntry()">Adaugă alimentare</button>
+    </div>
+
+    <div class="card">
+      <h2>Istoric alimentări</h2>
+      <div id="listWrap"></div>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="exportFuelCSV()">Export CSV</button>
+        <button class="btn-secondary" onclick="clearFuel()">Șterge tot</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB CURSE ===== -->
+  <div class="section" id="tab-curse">
+    <div class="card">
+      <h2 class="purple" id="lblTripMonth">Curse luna selectată</h2>
+      <div class="stats">
+        <div class="stat"><div class="val" id="tripCount">–</div><div class="lbl">Nr. curse</div></div>
+        <div class="stat"><div class="val" id="tripKm">–</div><div class="lbl">Km total</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="purple">Cursă nouă</h2>
+      <label>Data</label>
+      <input type="date" id="tripData">
+      <label>Kilometraj (bord)</label>
+      <input type="number" id="tripKm" placeholder="ex: 254300" inputmode="numeric">
+      <label>Notițe (opțional)</label>
+      <input type="text" id="tripNote" placeholder="ex: șantier, client">
+      <button class="btn-primary purple" onclick="addTrip()">Adaugă cursă</button>
+    </div>
+
+    <div class="card">
+      <h2 class="purple">Curse recente</h2>
+      <div id="tripListWrap"></div>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="exportTripsCSV()">Export CSV</button>
+        <button class="btn-secondary" onclick="clearTrips()">Șterge tot</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB SALARIU ===== -->
+  <div class="section" id="tab-salariu">
+    <div class="card">
+      <h2 class="green" id="lblSalariuTitle">Calcul Salariu</h2>
+      <div class="stats">
+        <div class="stat" style="grid-column:1/-1;"><div class="val" id="salTotal" style="font-size:1.8rem;color:var(--green)">–</div><div class="lbl">Total estimat (lei)</div></div>
+      </div>
+      <div id="salBreakdown" style="margin-top:14px;"></div>
+    </div>
+  </div>
+
+  <!-- ===== TAB KM ===== -->
+  <div class="section" id="tab-km">
+    <div class="card">
+      <h2 class="blue">Kilometraj (luna selectată)</h2>
+      <div class="stats">
+        <div class="stat" style="grid-column:1/-1;"><div class="val" id="kmMonth">–</div><div class="lbl">Km totali</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB ISTORIC ===== -->
+  <div class="section" id="tab-historic">
+    <div class="card">
+      <h2>📊 Rapoarte lunare</h2>
+      <div id="historicWrap"></div>
+    </div>
+  </div>
+
+</div>
+
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCigD8dsroW7DsJWOicoh0M2rchrbI1cGc",
+  authDomain: "istoric-camion.firebaseapp.com",
+  databaseURL: "https://istoric-camion-default-rtdb.europe-west1.firebasedatabase.app/",
+  projectId: "istoric-camion",
+  storageBucket: "istoric-camion.firebasestorage.app",
+  messagingSenderId: "826051116439",
+  appId: "1:826051116439:web:a83f9de8b502f1b7a1d8d2"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+let currentUid = null;
+let currentProfile = null;
+let selectedMonthKey = todayStr().slice(0, 7);
+
+const KEY_FUEL = 'truckers_fuel_v1';
+const KEY_TRIPS = 'truckers_trips_v1';
+const KEY_PROFILE = 'truckers_profile_v1';
+
+let entries = [];
+let trips = [];
+
+function todayStr(){
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+
+function emailFor(email){ return email.trim().toLowerCase(); }
+function displayNameFromEmail(email){
+  const local = email.split('@')[0];
+  return local.charAt(0).toUpperCase() + local.slice(1);
+}
+
+function showLoginError(msg){
+  const el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function hideLoginError(){ 
+  document.getElementById('loginError').style.display = 'none'; 
+}
+
+function setLoginBusy(busy){
+  document.querySelectorAll('#loginScreen button').forEach(b => b.disabled = busy);
+}
+
+function doLogin(){
+  hideLoginError();
+  const email = document.getElementById('loginEmail').value.trim();
+  const parola = document.getElementById('loginParola').value;
+  
+  if(!email || !parola){ showLoginError('Completează email și parolă.'); return; }
+  
+  setLoginBusy(true);
+  auth.signInWithEmailAndPassword(emailFor(email), parola)
+    .catch(err => {
+      setLoginBusy(false);
+      if(err.code === 'auth/user-not-found'){ showLoginError('Nu există cont cu acest email.'); }
+      else if(err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'){ showLoginError('Email sau parolă greșite.'); }
+      else { showLoginError('Eroare: ' + err.message); }
+    });
+}
+
+function doSignup(){
+  hideLoginError();
+  const email = document.getElementById('loginEmail').value.trim();
+  const parola = document.getElementById('loginParola').value;
+  
+  if(!email || !parola){ showLoginError('Completează email și parolă.'); return; }
+  if(parola.length < 6){ showLoginError('Parolă minim 6 caractere.'); return; }
+  
+  setLoginBusy(true);
+  auth.createUserWithEmailAndPassword(emailFor(email), parola)
+    .then(cred => {
+      return db.ref('users/'+cred.user.uid+'/profile_meta').set({ 
+        email: email,
+        createdAt: Date.now()
+      });
+    })
+    .catch(err => {
+      setLoginBusy(false);
+      if(err.code === 'auth/email-already-in-use'){ showLoginError('Email deja înregistrat.'); }
+      else { showLoginError('Eroare: ' + err.message); }
+    });
+}
+
+function doLogout(){
+  if(!confirm('Ieși din cont?')) return;
+  auth.signOut();
+}
+
+auth.onAuthStateChanged(user => {
+  if(user){
+    currentUid = user.uid;
+    document.getElementById('loginScreen').classList.add('app-hidden');
+    document.getElementById('appRoot').classList.remove('app-hidden');
+    loadUserData();
+  } else {
+    currentUid = null;
+    currentProfile = null;
+    document.getElementById('appRoot').classList.add('app-hidden');
+    document.getElementById('loginScreen').classList.remove('app-hidden');
+    document.getElementById('loginParola').value = '';
+    setLoginBusy(false);
+  }
+});
+
+function loadUserData(){
+  db.ref('users/'+currentUid).once('value').then(snap => {
+    const remote = snap.val() || {};
+    const localProfile = load(KEY_PROFILE, null);
+    const remoteProfile = remote.payProfile || null;
+    
+    const profile = remoteProfile || localProfile;
+    
+    document.getElementById('userLabel').textContent = 'Șofer';
+    
+    entries = (remote.fuel || load(KEY_FUEL, [])) || [];
+    trips = (remote.trips || load(KEY_TRIPS, [])) || [];
+    
+    if(!profile){
+      // Trebuie configurare
+      currentProfile = null;
+      showOnboarding();
+    } else {
+      currentProfile = profile;
+      document.getElementById('onboardingModal').style.display = 'none';
+      renderAllViews();
+    }
+  });
+}
+
+function showOnboarding(){
+  document.getElementById('onboardingModal').style.display = 'flex';
+}
+
+let selectedPayType = null;
+
+function selectPayType(type){
+  selectedPayType = type;
+  document.querySelectorAll('.pay-option').forEach((el, idx) => {
+    const types = ['per_trip', 'per_day', 'per_km'];
+    el.classList.toggle('selected', types[idx] === type);
+  });
+  
+  const rateGroup = document.getElementById('rateInputGroup');
+  const rateLabel = document.getElementById('rateLabel');
+  const rateHint = document.getElementById('rateHint');
+  
+  rateGroup.style.display = 'block';
+  
+  if(type === 'per_trip'){
+    rateLabel.textContent = 'Lei per cursă:';
+    rateHint.textContent = 'Exemplu: 50 lei per cursă efectuată';
+  } else if(type === 'per_day'){
+    rateLabel.textContent = 'Lei per zi:';
+    rateHint.textContent = 'Exemplu: 150 lei per zi lucrata';
+  } else if(type === 'per_km'){
+    rateLabel.textContent = 'Lei per km:';
+    rateHint.textContent = 'Exemplu: 0.50 lei per km parcurs';
+  }
+  
+  document.getElementById('btnSaveProfile').disabled = false;
+  document.getElementById('rateInput').focus();
+}
+
+function toggleBonusInput(bonus){
+  const checkbox = document.getElementById('bonus' + bonus.charAt(0).toUpperCase() + bonus.slice(1));
+  const inputDiv = document.getElementById(bonus + 'Input');
+  
+  if(checkbox.checked){
+    inputDiv.style.display = 'block';
+    const input = inputDiv.querySelector('input');
+    if(input) input.focus();
+  } else {
+    inputDiv.style.display = 'none';
+  }
+}
+
+function savePayProfile(){
+  if(!selectedPayType){ alert('Selectează tip de plată.'); return; }
+  
+  const rate = parseFloat(document.getElementById('rateInput').value);
+  if(isNaN(rate) || rate <= 0){ alert('Introdu o suma valida.'); return; }
+  
+  const bonuses = {};
+  
+  if(document.getElementById('bonusSaturday').checked){
+    const satRate = parseFloat(document.getElementById('saturdayRate').value);
+    if(isNaN(satRate) || satRate < 0){ alert('Introdu suma pentru sâmbete.'); return; }
+    bonuses.saturday = satRate;
+  }
+  
+  if(document.getElementById('bonusMeal').checked){
+    const mealRate = parseFloat(document.getElementById('mealRate').value);
+    if(isNaN(mealRate) || mealRate < 0){ alert('Introdu suma pentru masă.'); return; }
+    bonuses.meal = mealRate;
+  }
+  
+  if(document.getElementById('bonusService').checked){
+    const serviceRate = parseFloat(document.getElementById('serviceRate').value);
+    if(isNaN(serviceRate) || serviceRate < 0){ alert('Introdu suma pentru service.'); return; }
+    bonuses.service = serviceRate;
+  }
+  
+  currentProfile = {
+    payType: selectedPayType,
+    rate: rate,
+    bonuses: bonuses,
+    configuredAt: Date.now()
+  };
+  
+  save(KEY_PROFILE, currentProfile);
+  
+  if(currentUid){
+    db.ref('users/'+currentUid+'/payProfile').set(currentProfile)
+      .then(() => {
+        document.getElementById('onboardingModal').style.display = 'none';
+        populateMonthSelector();
+        renderAllViews();
+        renderHeaderDashboard();
+      });
+  } else {
+    document.getElementById('onboardingModal').style.display = 'none';
+    populateMonthSelector();
+    renderAllViews();
+    renderHeaderDashboard();
+  }
+}
+
+function skipOnboarding(){
+  document.getElementById('onboardingModal').style.display = 'none';
+}
+
+function openReconfigureProfile(){
+  // Reset form
+  selectedPayType = null;
+  document.querySelectorAll('.pay-option').forEach(el => el.classList.remove('selected'));
+  document.getElementById('rateInputGroup').style.display = 'none';
+  document.getElementById('rateInput').value = '';
+  
+  ['saturday', 'meal', 'service'].forEach(b => {
+    const checkbox = document.getElementById('bonus' + b.charAt(0).toUpperCase() + b.slice(1));
+    const inputDiv = document.getElementById(b + 'Input');
+    checkbox.checked = false;
+    inputDiv.style.display = 'none';
+    inputDiv.querySelector('input').value = '';
+  });
+  
+  if(currentProfile){
+    document.getElementById('rateInput').value = currentProfile.rate || '';
+    
+    if(currentProfile.payType === 'per_trip'){
+      document.querySelectorAll('.pay-option')[0].classList.add('selected');
+    } else if(currentProfile.payType === 'per_day'){
+      document.querySelectorAll('.pay-option')[1].classList.add('selected');
+    } else if(currentProfile.payType === 'per_km'){
+      document.querySelectorAll('.pay-option')[2].classList.add('selected');
+    }
+    selectedPayType = currentProfile.payType;
+    document.getElementById('rateInputGroup').style.display = 'block';
+    
+    if(currentProfile.bonuses){
+      if(currentProfile.bonuses.saturday){
+        document.getElementById('bonusSaturday').checked = true;
+        document.getElementById('saturdayInput').style.display = 'block';
+        document.getElementById('saturdayRate').value = currentProfile.bonuses.saturday;
+      }
+      if(currentProfile.bonuses.meal){
+        document.getElementById('bonusMeal').checked = true;
+        document.getElementById('mealInput').style.display = 'block';
+        document.getElementById('mealRate').value = currentProfile.bonuses.meal;
+      }
+      if(currentProfile.bonuses.service){
+        document.getElementById('bonusService').checked = true;
+        document.getElementById('serviceInput').style.display = 'block';
+        document.getElementById('serviceRate').value = currentProfile.bonuses.service;
+      }
+    }
+  }
+  
+  document.getElementById('onboardingModal').style.display = 'flex';
+}
+
+function load(key, fallback){
+  try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+  catch(e){ return fallback; }
+}
+
+function save(key, data){
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
+function fmtDate(s){
+  if(!s) return '–';
+  return new Date(s).toLocaleDateString('ro-RO');
+}
+
+function addEntry(){
+  const data = document.getElementById('inpData').value;
+  const km = parseFloat(document.getElementById('inpKm').value);
+  const litri = parseFloat(document.getElementById('inpLitri').value);
+  
+  if(!data || isNaN(km) || isNaN(litri)){ alert('Completează datele.'); return; }
+  
+  entries.push({ id: Date.now(), data, km, litri });
+  entries.sort((a,b) => a.km - b.km);
+  save(KEY_FUEL, entries);
+  
+  if(currentUid){
+    db.ref('users/'+currentUid+'/fuel').set(entries);
+  }
+  
+  document.getElementById('inpKm').value = '';
+  document.getElementById('inpLitri').value = '';
+  renderAllViews();
+}
+
+function deleteEntry(id){
+  if(!confirm('Ștergi?')) return;
+  entries = entries.filter(e => e.id !== id);
+  save(KEY_FUEL, entries);
+  if(currentUid) db.ref('users/'+currentUid+'/fuel').set(entries);
+  renderAllViews();
+}
+
+function clearFuel(){
+  if(!confirm('Ștergi tot?')) return;
+  entries = [];
+  save(KEY_FUEL, entries);
+  if(currentUid) db.ref('users/'+currentUid+'/fuel').set(entries);
+  renderAllViews();
+}
+
+function exportFuelCSV(){
+  if(entries.length === 0){ alert('Gol'); return; }
+  let csv = 'Data;Km;Litri\n';
+  [...entries].sort((a,b) => a.km - b.km).forEach(e => {
+    csv += `${e.data};${e.km};${e.litri}\n`;
+  });
+  downloadCSV(csv, 'combustibil.csv');
+}
+
+function addTrip(){
+  const data = document.getElementById('tripData').value;
+  const km = parseFloat(document.getElementById('tripKm').value);
+  const note = document.getElementById('tripNote').value.trim();
+  
+  if(!data || isNaN(km)){ alert('Completează datele.'); return; }
+  
+  trips.push({ id: Date.now(), data, km, note: note || null });
+  trips.sort((a,b) => new Date(a.data) - new Date(b.data));
+  save(KEY_TRIPS, trips);
+  
+  if(currentUid){
+    db.ref('users/'+currentUid+'/trips').set(trips);
+  }
+  
+  document.getElementById('tripKm').value = '';
+  document.getElementById('tripNote').value = '';
+  renderAllViews();
+}
+
+function deleteTrip(id){
+  if(!confirm('Ștergi?')) return;
+  trips = trips.filter(t => t.id !== id);
+  save(KEY_TRIPS, trips);
+  if(currentUid) db.ref('users/'+currentUid+'/trips').set(trips);
+  renderAllViews();
+}
+
+function clearTrips(){
+  if(!confirm('Ștergi tot?')) return;
+  trips = [];
+  save(KEY_TRIPS, trips);
+  if(currentUid) db.ref('users/'+currentUid+'/trips').set(trips);
+  renderAllViews();
+}
+
+function exportTripsCSV(){
+  if(trips.length === 0){ alert('Gol'); return; }
+  let csv = 'Data;Km;Notite\n';
+  [...trips].sort((a,b) => new Date(a.data) - new Date(b.data)).forEach(t => {
+    csv += `${t.data};${t.km};${t.note || ''}\n`;
+  });
+  downloadCSV(csv, 'curse.csv');
+}
+
+function downloadCSV(content, filename){
+  const blob = new Blob(['\ufeff' + content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === 'tab-' + name));
+}
+
+function renderAllViews(){
+  renderFuel();
+  renderTrips();
+  renderSalariu();
+}
+
+function renderFuel(){
+  const curMonth = selectedMonthKey;
+  const monthEntries = entries.filter(e => e.data.slice(0, 7) === curMonth);
+  const sorted = [...entries].sort((a,b) => a.km - b.km);
+  
+  const totalKm = sorted.length >= 2 ? sorted[sorted.length-1].km - sorted[0].km : 0;
+  const totalLitri = sorted.reduce((s,e) => s + e.litri, 0);
+  
+  document.getElementById('statAvg').textContent = totalKm > 0 && totalLitri > 0 ? ((totalLitri / totalKm) * 100).toFixed(2) + '%' : '–';
+  document.getElementById('statKm').textContent = totalKm.toLocaleString('ro-RO');
+  document.getElementById('statLitri').textContent = Math.round(totalLitri).toLocaleString('ro-RO');
+  
+  const listWrap = document.getElementById('listWrap');
+  if(monthEntries.length === 0){
+    listWrap.innerHTML = '<div class="empty">Niciuna.</div>';
+  } else {
+    listWrap.innerHTML = [...monthEntries].reverse().map(e => `
+      <div class="entry">
+        <div class="entry-top"><span class="date">${fmtDate(e.data)}</span><button class="del" onclick="deleteEntry(${e.id})">✕</button></div>
+        <div class="entry-meta">${e.km} km · ${e.litri} L</div>
+      </div>
+    `).join('');
+  }
+}
+
+function renderTrips(){
+  const curMonth = selectedMonthKey;
+  const monthTrips = trips.filter(t => t.data.slice(0, 7) === curMonth);
+  
+  const totalKm = monthTrips.length >= 2 
+    ? monthTrips.reduce((max, t) => Math.max(max, t.km), 0) - monthTrips.reduce((min, t) => Math.min(min, t.km), Infinity)
+    : 0;
+  
+  document.getElementById('tripCount').textContent = monthTrips.length;
+  document.getElementById('tripKm').textContent = (monthTrips.reduce((s,t) => s + (t.km||0), 0)).toLocaleString('ro-RO') + ' km';
+  
+  const listWrap = document.getElementById('tripListWrap');
+  if(monthTrips.length === 0){
+    listWrap.innerHTML = '<div class="empty">Niciuna.</div>';
+  } else {
+    listWrap.innerHTML = [...monthTrips].reverse().map(t => `
+      <div class="entry">
+        <div class="entry-top"><span class="date">${fmtDate(t.data)}</span><button class="del" onclick="deleteTrip(${t.id})">✕</button></div>
+        <div class="entry-meta">${t.km} km ${t.note ? '· '+t.note : ''}</div>
+      </div>
+    `).join('');
+  }
+}
+
+function calculateSalary(monthKey){
+  if(!currentProfile) return { total: 0, breakdown: [] };
+  
+  const monthTrips = trips.filter(t => t.data.slice(0, 7) === monthKey);
+  const monthEntries = entries.filter(e => e.data.slice(0, 7) === monthKey);
+  
+  const daysSet = new Set();
+  monthTrips.forEach(t => daysSet.add(t.data));
+  monthEntries.forEach(e => daysSet.add(e.data));
+  const daysCount = daysSet.size;
+  
+  let total = 0;
+  let breakdown = [];
+  
+  // Plata principală
+  if(currentProfile.payType === 'per_trip'){
+    const amount = monthTrips.length * currentProfile.rate;
+    total += amount;
+    breakdown.push({ label: `Curse (${monthTrips.length} × ${currentProfile.rate} lei)`, amount: Math.round(amount) });
+  } else if(currentProfile.payType === 'per_day'){
+    const amount = daysCount * currentProfile.rate;
+    total += amount;
+    breakdown.push({ label: `Zile (${daysCount} × ${currentProfile.rate} lei)`, amount: Math.round(amount) });
+  } else if(currentProfile.payType === 'per_km'){
+    const kmTrips = monthTrips.reduce((s,t) => s + (t.km||0), 0);
+    const amount = kmTrips * currentProfile.rate;
+    total += amount;
+    breakdown.push({ label: `Km (${kmTrips} × ${currentProfile.rate} lei)`, amount: Math.round(amount) });
+  }
+  
+  // Bonusuri
+  const bonuses = currentProfile.bonuses || {};
+  
+  // Sâmbete plătite - detectate din zilele cu curse
+  if(bonuses.saturday){
+    const satDays = Array.from(daysSet).filter(dateStr => {
+      const d = new Date(dateStr);
+      return d.getDay() === 6;
+    }).length;
+    
+    if(satDays > 0){
+      const amount = satDays * bonuses.saturday;
+      total += amount;
+      breakdown.push({ label: `Sâmbete (${satDays} × ${bonuses.saturday} lei)`, amount: Math.round(amount), bonus: true });
+    }
+  }
+  
+  // Bonuri masă - per zi lucrata
+  if(bonuses.meal){
+    const amount = daysCount * bonuses.meal;
+    if(daysCount > 0){
+      total += amount;
+      breakdown.push({ label: `Masă (${daysCount} × ${bonuses.meal} lei)`, amount: Math.round(amount), bonus: true });
+    }
+  }
+  
+  // Service - per zi lucrata
+  if(bonuses.service){
+    const amount = daysCount * bonuses.service;
+    if(daysCount > 0){
+      total += amount;
+      breakdown.push({ label: `Service (${daysCount} × ${bonuses.service} lei)`, amount: Math.round(amount), bonus: true });
+    }
+  }
+  
+  return { total: Math.round(total), breakdown };
+}
+
+function renderSalariu(){
+  const curMonth = selectedMonthKey;
+  const sal = calculateSalary(curMonth);
+  
+  document.getElementById('salTotal').textContent = sal.total.toLocaleString('ro-RO') + ' lei';
+  
+  const breakdownHtml = sal.breakdown.map(b => {
+    const style = b.bonus ? 'opacity:.85;border-left:3px solid var(--green);' : '';
+    return `
+      <div class="sort-row" style="${style}">
+        <span>${b.label}</span>
+        <b style="${b.bonus ? 'color:var(--green);' : ''}">${b.amount.toLocaleString('ro-RO')} lei</b>
+      </div>
+    `;
+  }).join('');
+  
+  if(!currentProfile){
+    document.getElementById('salBreakdown').innerHTML = '<div style="color:var(--muted);text-align:center;padding:10px;">Configurează profilul apăsând ⚙️</div>';
+  } else {
+    document.getElementById('salBreakdown').innerHTML = breakdownHtml || '<div style="color:var(--muted);text-align:center;padding:10px;">Nicio intrare în luna asta.</div>';
+  }
+}
+
+function renderHeaderDashboard(){
+  const curMonth = selectedMonthKey;
+  const monthTrips = trips.filter(t => t.data.slice(0, 7) === curMonth);
+  const monthEntries = entries.filter(e => e.data.slice(0, 7) === curMonth);
+  
+  const daysSet = new Set();
+  monthTrips.forEach(t => daysSet.add(t.data));
+  monthEntries.forEach(e => daysSet.add(e.data));
+  
+  document.getElementById('topHeaderDays').textContent = daysSet.size;
+  document.getElementById('topHeaderTrips').textContent = monthTrips.length;
+  document.getElementById('topHeaderKm').textContent = (monthTrips.reduce((s,t) => s + (t.km||0), 0)).toLocaleString('ro-RO') + ' km';
+}
+
+function onSelectedMonthChange(){
+  selectedMonthKey = document.getElementById('globalMonthSelect').value;
+  renderAllViews();
+  renderHeaderDashboard();
+}
+
+function populateMonthSelector(){
+  const select = document.getElementById('globalMonthSelect');
+  const monthSet = new Set();
+  
+  monthSet.add(todayStr().slice(0, 7));
+  trips.forEach(t => { if(t.data) monthSet.add(t.data.slice(0, 7)); });
+  entries.forEach(e => { if(e.data) monthSet.add(e.data.slice(0, 7)); });
+  
+  const sorted = Array.from(monthSet).sort((a,b) => b.localeCompare(a));
+  select.innerHTML = sorted.map(mk => {
+    const [y, m] = mk.split('-');
+    const d = new Date(parseInt(y), parseInt(m) - 1, 1);
+    const name = d.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
+    return `<option value="${mk}">${name}</option>`;
+  }).join('');
+  
+  select.value = selectedMonthKey;
+}
+
+window.addEventListener('load', () => {
+  populateMonthSelector();
+  document.getElementById('inpData').value = todayStr();
+  document.getElementById('tripData').value = todayStr();
+});
+</script>
+</body>
+</html>
